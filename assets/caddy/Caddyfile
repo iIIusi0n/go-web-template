@@ -1,0 +1,11 @@
+{$SERVER_DOMAIN} {
+	handle /api/* {
+        reverse_proxy {$API_SERVER_HOST}:8080
+	}
+
+    handle /* {
+        root * /usr/share/caddy/assets
+        file_server
+        try_files {path} /index.html
+    }
+}
