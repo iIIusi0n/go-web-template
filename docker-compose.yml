@@ -1,0 +1,55 @@
+version: "3.3"
+
+services:
+  # MySQL
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_RANDOM_ROOT_PASSWORD=${MYSQL_RANDOM_ROOT_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - ./assets/mysql:/docker-entrypoint-initdb.d
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  # Golang API server
+  api-server:
+    build: .
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - SERVER_DOMAIN=${SERVER_DOMAIN}
+      - SERVER_SECRETE_KEY=${SERVER_SECRETE_KEY}
+      - SERVER_IS_DEV=${SERVER_IS_DEV}
+      - SERVER_LOG_TO_FILE=${SERVER_LOG_TO_FILE}
+    depends_on:
+      - db
+
+  # React builder
+  react:
+    build: ./web
+    volumes:
+      - ./web/build:/output/build
+    command: cp -r /app/build /output
+
+  # Caddy reverse proxy
+  caddy:
+    image: caddy
+    volumes:
+      - ./web/build:/usr/share/caddy/assets
+      - ./assets/caddy/Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      API_SERVER_HOST: api-server
+      SERVER_DOMAIN: ${SERVER_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - react
+      - api-server
