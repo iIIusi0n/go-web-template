@@ -24,14 +24,17 @@ func NewRouter() *gin.Engine {
 
 			user := v1.Group("/user")
 			{
-				user.Use(middlewares.JwtAuthMiddleware)
-
-				user.GET("/", cUser.GetLoggedInUserRouter)
 				user.GET("/:id", cUser.GetUserRouter)
 
 				user.POST("/", cUser.CreateUserRouter)
 
-				user.PATCH("/", cUser.UpdateUserRouter)
+				{
+					user.Use(middlewares.JwtAuthMiddleware)
+
+					user.GET("/", cUser.GetLoggedInUserRouter)
+
+					user.PATCH("/", cUser.UpdateUserRouter)
+				}
 			}
 		}
 	}
